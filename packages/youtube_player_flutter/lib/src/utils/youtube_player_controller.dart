@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
@@ -32,6 +31,7 @@ class YoutubePlayerValue {
     this.webViewController,
     this.isDragging = false,
     this.metaData = const YoutubeMetaData(),
+    this.toggleFullScreen = false,
   });
 
   /// Returns true when the player is ready to play videos.
@@ -70,13 +70,13 @@ class YoutubePlayerValue {
   final int errorCode;
 
   /// Reports the [WebViewController].
-  final InAppWebViewController? webViewController;
+  final InAppWebViewController webViewController;
 
   /// Returns true is player has errors.
   bool get hasError => errorCode != 0;
 
   /// Reports the current playback quality.
-  final String? playbackQuality;
+  final String playbackQuality;
 
   /// Returns true if [ProgressBar] is being dragged.
   final bool isDragging;
@@ -84,25 +84,28 @@ class YoutubePlayerValue {
   /// Returns meta data of the currently loaded/cued video.
   final YoutubeMetaData metaData;
 
+  final bool toggleFullScreen;
+
   /// Creates new [YoutubePlayerValue] with assigned parameters and overrides
   /// the old one.
   YoutubePlayerValue copyWith({
-    bool? isReady,
-    bool? isControlsVisible,
-    bool? isLoaded,
-    bool? hasPlayed,
-    Duration? position,
-    double? buffered,
-    bool? isPlaying,
-    bool? isFullScreen,
-    int? volume,
-    PlayerState? playerState,
-    double? playbackRate,
-    String? playbackQuality,
-    int? errorCode,
-    InAppWebViewController? webViewController,
-    bool? isDragging,
-    YoutubeMetaData? metaData,
+    bool isReady,
+    bool isControlsVisible,
+    bool isLoaded,
+    bool hasPlayed,
+    Duration position,
+    double buffered,
+    bool isPlaying,
+    bool isFullScreen,
+    double volume,
+    PlayerState playerState,
+    double playbackRate,
+    String playbackQuality,
+    int errorCode,
+    InAppWebViewController webViewController,
+    bool isDragging,
+    YoutubeMetaData metaData,
+    bool toggleFullScreen,
   }) {
     return YoutubePlayerValue(
       isReady: isReady ?? this.isReady,
@@ -120,6 +123,7 @@ class YoutubePlayerValue {
       webViewController: webViewController ?? this.webViewController,
       isDragging: isDragging ?? this.isDragging,
       metaData: metaData ?? this.metaData,
+      toggleFullScreen: toggleFullScreen ?? this.toggleFullScreen,
     );
   }
 
@@ -157,16 +161,16 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
 
   /// Creates [YoutubePlayerController].
   YoutubePlayerController({
-    required this.initialVideoId,
+    @required this.initialVideoId,
     this.flags = const YoutubePlayerFlags(),
-  }) : super(YoutubePlayerValue());
+  })  : assert(initialVideoId != null, 'initialVideoId can\'t be null.'),
+        assert(flags != null),
+        super(YoutubePlayerValue());
 
   /// Finds [YoutubePlayerController] in the provided context.
-  static YoutubePlayerController? of(BuildContext context) {
-    return context
-        .dependOnInheritedWidgetOfExactType<InheritedYoutubePlayer>()
-        ?.controller;
-  }
+  factory YoutubePlayerController.of(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<InheritedYoutubePlayer>()
+      ?.controller;
 
   _callMethod(String methodString) {
     if (value.isReady) {
@@ -187,7 +191,7 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
   void pause() => _callMethod('pause()');
 
   /// Loads the video as per the [videoId] provided.
-  void load(String videoId, {int startAt = 0, int? endAt}) {
+  void load(String videoId, {int startAt = 0, int endAt}) {
     var loadParams = 'videoId:"$videoId",startSeconds:$startAt';
     if (endAt != null && endAt > startAt) {
       loadParams += ',endSeconds:$endAt';
@@ -201,7 +205,7 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
   }
 
   /// Cues the video as per the [videoId] provided.
-  void cue(String videoId, {int startAt = 0, int? endAt}) {
+  void cue(String videoId, {int startAt = 0, int endAt}) {
     var cueParams = 'videoId:"$videoId",startSeconds:$startAt';
     if (endAt != null && endAt > startAt) {
       cueParams += ',endSeconds:$endAt';
@@ -215,7 +219,7 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
   }
 
   void _updateValues(String id) {
-    if (id.length != 11) {
+    if (id?.length != 11) {
       updateValue(
         value.copyWith(
           errorCode: 1,
@@ -273,17 +277,8 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
   void setPlaybackRate(double rate) => _callMethod('setPlaybackRate($rate)');
 
   /// Toggles the player's full screen mode.
-  void toggleFullScreenMode() {
-    updateValue(value.copyWith(isFullScreen: !value.isFullScreen));
-    if (value.isFullScreen) {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
-    } else {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    }
-  }
+  void toggleFullScreenMode() =>
+      updateValue(value.copyWith(toggleFullScreen: true));
 
   /// MetaData for the currently loaded or cued video.
   YoutubeMetaData get metadata => value.metaData;
@@ -295,31 +290,32 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
 
   /// Resets the value of [YoutubePlayerController].
   void reset() => updateValue(
-        value.copyWith(
-          isReady: false,
-          isFullScreen: false,
-          isControlsVisible: false,
-          playerState: PlayerState.unknown,
-          hasPlayed: false,
-          position: Duration.zero,
-          buffered: 0.0,
-          errorCode: 0,
-          isLoaded: false,
-          isPlaying: false,
-          isDragging: false,
-          metaData: const YoutubeMetaData(),
-        ),
-      );
+    value.copyWith(
+      isReady: false,
+      isFullScreen: false,
+      isControlsVisible: false,
+      playerState: PlayerState.unknown,
+      hasPlayed: false,
+      position: Duration.zero,
+      buffered: 0.0,
+      errorCode: 0,
+      isLoaded: false,
+      isPlaying: false,
+      isDragging: false,
+      metaData: const YoutubeMetaData(),
+    ),
+  );
 }
 
 /// An inherited widget to provide [YoutubePlayerController] to it's descendants.
 class InheritedYoutubePlayer extends InheritedWidget {
   /// Creates [InheritedYoutubePlayer]
   const InheritedYoutubePlayer({
-    Key? key,
-    required this.controller,
-    required Widget child,
-  }) : super(key: key, child: child);
+    Key key,
+    @required this.controller,
+    @required Widget child,
+  })  : assert(controller != null),
+        super(key: key, child: child);
 
   /// A [YoutubePlayerController] which controls the player.
   final YoutubePlayerController controller;

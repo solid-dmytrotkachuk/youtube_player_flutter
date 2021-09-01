@@ -11,19 +11,15 @@ import 'full_screen_button.dart';
 /// A widget to display bottom controls bar on Live Video Mode.
 class LiveBottomBar extends StatefulWidget {
   /// Overrides the default [YoutubePlayerController].
-  final YoutubePlayerController? controller;
+  final YoutubePlayerController controller;
 
   /// Defines color for UI.
   final Color liveUIColor;
 
-  /// Defines whether to show or hide the fullscreen button
-  final bool showLiveFullscreenButton;
-
   /// Creates [LiveBottomBar] widget.
   LiveBottomBar({
     this.controller,
-    required this.liveUIColor,
-    required this.showLiveFullscreenButton,
+    @required this.liveUIColor,
   });
 
   @override
@@ -33,28 +29,26 @@ class LiveBottomBar extends StatefulWidget {
 class _LiveBottomBarState extends State<LiveBottomBar> {
   double _currentSliderPosition = 0.0;
 
-  late YoutubePlayerController _controller;
+  YoutubePlayerController _controller;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final controller = YoutubePlayerController.of(context);
-    if (controller == null) {
+    _controller = YoutubePlayerController.of(context);
+    if (_controller == null) {
       assert(
-        widget.controller != null,
-        '\n\nNo controller could be found in the provided context.\n\n'
-        'Try passing the controller explicitly.',
+      widget.controller != null,
+      '\n\nNo controller could be found in the provided context.\n\n'
+          'Try passing the controller explicitly.',
       );
-      _controller = widget.controller!;
-    } else {
-      _controller = controller;
+      _controller = widget.controller;
     }
     _controller.addListener(listener);
   }
 
   @override
   void dispose() {
-    _controller.removeListener(listener);
+    _controller?.removeListener(listener);
     super.dispose();
   }
 
@@ -62,10 +56,10 @@ class _LiveBottomBarState extends State<LiveBottomBar> {
     if (mounted) {
       setState(() {
         _currentSliderPosition =
-            _controller.metadata.duration.inMilliseconds == 0
-                ? 0
-                : _controller.value.position.inMilliseconds /
-                    _controller.metadata.duration.inMilliseconds;
+        _controller.metadata.duration.inMilliseconds == 0
+            ? 0
+            : _controller.value.position.inMilliseconds /
+            _controller.metadata.duration.inMilliseconds;
       });
     }
   }
@@ -89,8 +83,8 @@ class _LiveBottomBarState extends State<LiveBottomBar> {
                   _controller.seekTo(
                     Duration(
                       milliseconds:
-                          (_controller.metadata.duration.inMilliseconds * value)
-                              .round(),
+                      (_controller.metadata.duration.inMilliseconds * value)
+                          .round(),
                     ),
                   );
                 },
@@ -116,9 +110,9 @@ class _LiveBottomBarState extends State<LiveBottomBar> {
               ),
             ),
           ),
-          widget.showLiveFullscreenButton
-              ? FullScreenButton(controller: _controller)
-              : const SizedBox(width: 14.0),
+          FullScreenButton(
+            controller: _controller,
+          ),
         ],
       ),
     );

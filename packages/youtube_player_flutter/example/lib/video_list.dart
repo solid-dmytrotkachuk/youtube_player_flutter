@@ -21,12 +21,12 @@ class _VideoListState extends State<VideoList> {
   ]
       .map<YoutubePlayerController>(
         (videoId) => YoutubePlayerController(
-          initialVideoId: videoId,
-          flags: const YoutubePlayerFlags(
-            autoPlay: false,
-          ),
-        ),
-      )
+      initialVideoId: videoId,
+      flags: const YoutubePlayerFlags(
+        autoPlay: false,
+      ),
+    ),
+  )
       .toList();
 
   @override

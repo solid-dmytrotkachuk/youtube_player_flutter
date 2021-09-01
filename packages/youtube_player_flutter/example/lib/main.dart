@@ -30,7 +30,7 @@ class YoutubePlayerDemoApp extends StatelessWidget {
         appBarTheme: const AppBarTheme(
           color: Colors.blueAccent,
           textTheme: TextTheme(
-            headline6: TextStyle(
+            headline: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w300,
               fontSize: 20.0,
@@ -53,12 +53,13 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late YoutubePlayerController _controller;
-  late TextEditingController _idController;
-  late TextEditingController _seekToController;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
+  YoutubePlayerController _controller;
+  TextEditingController _idController;
+  TextEditingController _seekToController;
 
-  late PlayerState _playerState;
-  late YoutubeMetaData _videoMetaData;
+  PlayerState _playerState;
+  YoutubeMetaData _videoMetaData;
   double _volume = 100;
   bool _muted = false;
   bool _isPlayerReady = false;
@@ -165,6 +166,7 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ),
       builder: (context, player) => Scaffold(
+        key: _scaffoldKey,
         appBar: AppBar(
           leading: Padding(
             padding: const EdgeInsets.only(left: 12.0),
@@ -208,7 +210,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     children: [
                       _text(
                         'Playback Quality',
-                        _controller.value.playbackQuality ?? '',
+                        _controller.value.playbackQuality,
                       ),
                       const Spacer(),
                       _text(
@@ -252,9 +254,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         icon: const Icon(Icons.skip_previous),
                         onPressed: _isPlayerReady
                             ? () => _controller.load(_ids[
-                                (_ids.indexOf(_controller.metadata.videoId) -
-                                        1) %
-                                    _ids.length])
+                        (_ids.indexOf(_controller.metadata.videoId) -
+                            1) %
+                            _ids.length])
                             : null,
                       ),
                       IconButton(
@@ -265,24 +267,24 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                         onPressed: _isPlayerReady
                             ? () {
-                                _controller.value.isPlaying
-                                    ? _controller.pause()
-                                    : _controller.play();
-                                setState(() {});
-                              }
+                          _controller.value.isPlaying
+                              ? _controller.pause()
+                              : _controller.play();
+                          setState(() {});
+                        }
                             : null,
                       ),
                       IconButton(
                         icon: Icon(_muted ? Icons.volume_off : Icons.volume_up),
                         onPressed: _isPlayerReady
                             ? () {
-                                _muted
-                                    ? _controller.unMute()
-                                    : _controller.mute();
-                                setState(() {
-                                  _muted = !_muted;
-                                });
-                              }
+                          _muted
+                              ? _controller.unMute()
+                              : _controller.mute();
+                          setState(() {
+                            _muted = !_muted;
+                          });
+                        }
                             : null,
                       ),
                       FullScreenButton(
@@ -293,9 +295,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         icon: const Icon(Icons.skip_next),
                         onPressed: _isPlayerReady
                             ? () => _controller.load(_ids[
-                                (_ids.indexOf(_controller.metadata.videoId) +
-                                        1) %
-                                    _ids.length])
+                        (_ids.indexOf(_controller.metadata.videoId) +
+                            1) %
+                            _ids.length])
                             : null,
                       ),
                     ],
@@ -317,11 +319,11 @@ class _MyHomePageState extends State<MyHomePage> {
                           label: '${(_volume).round()}',
                           onChanged: _isPlayerReady
                               ? (value) {
-                                  setState(() {
-                                    _volume = value;
-                                  });
-                                  _controller.setVolume(_volume.round());
-                                }
+                            setState(() {
+                              _volume = value;
+                            });
+                            _controller.setVolume(_volume.round());
+                          }
                               : null,
                         ),
                       ),
@@ -363,7 +365,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         children: [
           TextSpan(
-            text: value,
+            text: value ?? '',
             style: const TextStyle(
               color: Colors.blueAccent,
               fontWeight: FontWeight.w300,
@@ -377,7 +379,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Color _getStateColor(PlayerState state) {
     switch (state) {
       case PlayerState.unknown:
-        return Colors.grey[700]!;
+        return Colors.grey[700];
       case PlayerState.unStarted:
         return Colors.pink;
       case PlayerState.ended:
@@ -389,7 +391,7 @@ class _MyHomePageState extends State<MyHomePage> {
       case PlayerState.buffering:
         return Colors.yellow;
       case PlayerState.cued:
-        return Colors.blue[900]!;
+        return Colors.blue[900];
       default:
         return Colors.blue;
     }
@@ -403,18 +405,17 @@ class _MyHomePageState extends State<MyHomePage> {
         color: Colors.blueAccent,
         onPressed: _isPlayerReady
             ? () {
-                if (_idController.text.isNotEmpty) {
-                  var id = YoutubePlayer.convertUrlToId(
-                        _idController.text,
-                      ) ??
-                      '';
-                  if (action == 'LOAD') _controller.load(id);
-                  if (action == 'CUE') _controller.cue(id);
-                  FocusScope.of(context).requestFocus(FocusNode());
-                } else {
-                  _showSnackBar('Source can\'t be empty!');
-                }
-              }
+          if (_idController.text.isNotEmpty) {
+            var id = YoutubePlayer.convertUrlToId(
+              _idController.text,
+            );
+            if (action == 'LOAD') _controller.load(id);
+            if (action == 'CUE') _controller.cue(id);
+            FocusScope.of(context).requestFocus(FocusNode());
+          } else {
+            _showSnackBar('Source can\'t be empty!');
+          }
+        }
             : null,
         disabledColor: Colors.grey,
         disabledTextColor: Colors.black,
@@ -435,7 +436,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    _scaffoldKey.currentState.showSnackBar(
       SnackBar(
         content: Text(
           message,
